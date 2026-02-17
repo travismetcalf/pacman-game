@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>PAC-MAN</h1>
+
+    <div class="hud">
+        <div class="hud-item">
+            <span class="hud-label">Score</span>
+            <span id="score-value">0</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Lives</span>
+            <span id="lives-value">&#10084; &#10084; &#10084;</span>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <button id="mute-btn">&#128266; Sound On</button>
+
+    <div class="footer">Arrow keys or WASD to move &bull; M to mute</div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
