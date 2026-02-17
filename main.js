@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { Game } from './game.js';
-import { toggleMute, isMuted } from './audio.js';
+import { toggleMute } from './audio.js';
 
 // TODO: Add touch/mobile controls for mobile devices
 
@@ -27,6 +27,14 @@ function init() {
     muteBtn.addEventListener('click', () => {
         const muted = toggleMute();
         muteBtn.textContent = muted ? '\uD83D\uDD07 Sound Off' : '\uD83D\uDD0A Sound On';
+    });
+
+    // Keyboard shortcut for mute toggle (matches on-screen hint).
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'm' || e.key === 'M') {
+            const muted = toggleMute();
+            muteBtn.textContent = muted ? '\uD83D\uDD07 Sound Off' : '\uD83D\uDD0A Sound On';
+        }
     });
 }
 
