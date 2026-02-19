@@ -14,6 +14,9 @@ export const PACMAN_SPEED = 5.5;
 /** Starting number of lives */
 export const STARTING_LIVES = 3;
 
+/** Number of playable levels (Level 1 + 3 harder levels) */
+export const MAX_LEVEL = 4;
+
 // --- Ghost Speeds ---
 /** Normal ghost speed (cells per second) */
 export const GHOST_BASE_SPEED = 4.0;

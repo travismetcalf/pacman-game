@@ -1,39 +1,39 @@
 // ============================================================================
 // game.js — Central game orchestration: game loop, state management,
-//           collision detection, mode cycling, scoring, and rendering.
-//
-// Rendering approach: Canvas API
-// Why Canvas: Provides smooth, pixel-level control for animation (mouth,
-// ghost wobble, etc.) and performs well for real-time game loops. A DOM/grid
-// approach would require frequent style updates which is less efficient for
-// continuous animation at 60fps.
+//           collision detection, multi-level progression, and rendering.
 // ============================================================================
 
-import { CELL_SIZE, COLORS, STARTING_LIVES, EXTRA_LIFE_SCORE,
-         SCORE_DOT, SCORE_POWER_PELLET, SCORE_GHOST_BASE,
-         FRIGHTENED_DURATION_MS, CHASE_DURATION_MS, SCATTER_DURATION_MS,
-         GHOST_EXIT_DELAYS } from './config.js';
+import {
+    CELL_SIZE,
+    COLORS,
+    STARTING_LIVES,
+    EXTRA_LIFE_SCORE,
+    SCORE_DOT,
+    SCORE_POWER_PELLET,
+    SCORE_GHOST_BASE,
+    MAX_LEVEL,
+} from './config.js';
+import { getLevelSettings } from './difficulty.js';
 import { Maze, TILE } from './maze.js';
 import { PacMan } from './pacman.js';
 import { Ghost, GHOST_MODE } from './ghost.js';
 import { input } from './input.js';
 import * as audio from './audio.js';
 
-// TODO: Support multiple levels with different maze layouts
-
 const STATE = {
-    START:     'START',
-    PLAYING:   'PLAYING',
-    DYING:     'DYING',
+    START: 'START',
+    PLAYING: 'PLAYING',
+    DYING: 'DYING',
     GAME_OVER: 'GAME_OVER',
-    WIN:       'WIN',
+    WIN: 'WIN',
 };
 
 export class Game {
-    constructor(canvas, onScoreUpdate) {
+    constructor(canvas, callbacks = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.onScoreUpdate = onScoreUpdate;
+        this.onHudUpdate = callbacks.onHudUpdate || (() => {});
+        this.onGameEnd = callbacks.onGameEnd || (() => {});
 
         this.maze = new Maze();
         this.canvas.width = this.maze.cols * CELL_SIZE;
@@ -48,6 +48,9 @@ export class Game {
         this.state = STATE.START;
         this.score = 0;
         this.lives = STARTING_LIVES;
+        this.level = 1;
+        this.maxLevel = MAX_LEVEL;
+        this.levelSettings = getLevelSettings(this.level);
         this.extraLifeAwarded = false;
 
         this.globalGhostMode = GHOST_MODE.SCATTER;
@@ -58,6 +61,7 @@ export class Game {
         this.dyingTimer = 0;
         this._lastTime = 0;
         this._animFrameId = null;
+        this._endReported = false;
 
         input.onAnyKey = () => {
             if (this.state === STATE.START || this.state === STATE.GAME_OVER || this.state === STATE.WIN) {
@@ -70,18 +74,31 @@ export class Game {
         this.maze.reset();
         this.score = 0;
         this.lives = STARTING_LIVES;
+        this.level = 1;
+        this.levelSettings = getLevelSettings(this.level);
         this.extraLifeAwarded = false;
+        this._endReported = false;
         this.state = STATE.PLAYING;
         this._resetPositions();
-        this.onScoreUpdate(this.score, this.lives);
+        this._emitHudUpdate();
         audio.playGameStartSound();
+    }
+
+    _emitHudUpdate() {
+        this.onHudUpdate(this.score, this.lives, this.level, this.maxLevel);
+    }
+
+    _reportGameEnd(reason) {
+        if (this._endReported) return;
+        this._endReported = true;
+        this.onGameEnd(this.score, reason, this.level, this.maxLevel);
     }
 
     _resetPositions() {
         this.pacman.reset();
-        this.ghosts.forEach((g, i) => {
-            g.reset();
-            g.scheduleExit(GHOST_EXIT_DELAYS[i]);
+        this.ghosts.forEach((ghost, i) => {
+            ghost.reset();
+            ghost.scheduleExit(this.levelSettings.ghostExitDelays[i]);
         });
         this.globalGhostMode = GHOST_MODE.SCATTER;
         this.modeTimer = 0;
@@ -117,6 +134,7 @@ export class Game {
                 if (this.lives <= 0) {
                     this.state = STATE.GAME_OVER;
                     audio.playGameOverSound();
+                    this._reportGameEnd('GAME_OVER');
                 } else {
                     this._resetPositions();
                     this.state = STATE.PLAYING;
@@ -138,23 +156,41 @@ export class Game {
         }
 
         const pacPos = this.pacman.getPosition();
+        const ghostDt = dt * this.levelSettings.ghostDtMultiplier;
         for (const ghost of this.ghosts) {
-            ghost.update(dt, pacPos, this.globalGhostMode);
+            ghost.update(ghostDt, pacPos, this.globalGhostMode);
         }
 
         this._checkGhostCollisions();
 
-        if (this.maze.getRemainingDots() === 0) {
-            this.state = STATE.WIN;
+        if (this.state === STATE.PLAYING && this.maze.getRemainingDots() === 0) {
+            this._handleLevelComplete();
         }
     }
 
+    _handleLevelComplete() {
+        if (this.level < this.maxLevel) {
+            this.level++;
+            this.levelSettings = getLevelSettings(this.level);
+            this.maze.reset();
+            this._resetPositions();
+            this.state = STATE.PLAYING;
+            this._emitHudUpdate();
+            return;
+        }
+
+        this.state = STATE.WIN;
+        this._reportGameEnd('WIN');
+    }
+
     _updateGhostMode(dt) {
-        if (this.ghosts.some(g => g.frightened)) return;
+        if (this.ghosts.some((ghost) => ghost.frightened)) return;
 
         this.modeTimer += dt * 1000;
         const isScatter = this.modePhase % 2 === 0;
-        const duration = isScatter ? SCATTER_DURATION_MS : CHASE_DURATION_MS;
+        const duration = isScatter
+            ? this.levelSettings.scatterDurationMs
+            : this.levelSettings.chaseDurationMs;
 
         if (this.modeTimer >= duration) {
             this.modeTimer = 0;
@@ -179,7 +215,7 @@ export class Game {
             this.ghostsEatenThisFright = 0;
 
             for (const ghost of this.ghosts) {
-                ghost.setFrightened(FRIGHTENED_DURATION_MS);
+                ghost.setFrightened(this.levelSettings.frightenedDurationMs);
             }
         }
 
@@ -188,7 +224,7 @@ export class Game {
             this.extraLifeAwarded = true;
         }
 
-        this.onScoreUpdate(this.score, this.lives);
+        this._emitHudUpdate();
     }
 
     _checkGhostCollisions() {
@@ -209,10 +245,10 @@ export class Game {
                     const bonus = SCORE_GHOST_BASE * Math.pow(2, this.ghostsEatenThisFright - 1);
                     this.score += bonus;
                     audio.playGhostEatenSound();
-                    this.onScoreUpdate(this.score, this.lives);
+                    this._emitHudUpdate();
                 } else {
                     this.lives--;
-                    this.onScoreUpdate(this.score, this.lives);
+                    this._emitHudUpdate();
                     audio.playLifeLostSound();
                     this.state = STATE.DYING;
                     this.dyingTimer = 1.2;
@@ -265,5 +301,20 @@ export class Game {
         ctx.font = '10px "Press Start 2P", monospace';
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText('Arrow keys or WASD to move', canvas.width / 2, canvas.height / 2 + 55);
+    }
+
+    // QA hooks used by automated tests.
+    setScoreForTests(score) {
+        this.score = Number(score) || 0;
+        this._emitHudUpdate();
+    }
+
+    forceGameOverForTests() {
+        this.state = STATE.GAME_OVER;
+        this._reportGameEnd('GAME_OVER');
+    }
+
+    advanceLevelForTests() {
+        this._handleLevelComplete();
     }
 }

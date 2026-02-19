@@ -15,6 +15,10 @@
             <span id="score-value">0</span>
         </div>
         <div class="hud-item">
+            <span class="hud-label">Level</span>
+            <span id="level-value">1/4</span>
+        </div>
+        <div class="hud-item">
             <span class="hud-label">Lives</span>
             <span id="lives-value">&#10084; &#10084; &#10084;</span>
         </div>
@@ -22,6 +26,22 @@
 
     <div class="game-container">
         <canvas id="game-canvas"></canvas>
+    </div>
+
+    <section class="leaderboard" aria-labelledby="leaderboard-title">
+        <h2 id="leaderboard-title">Leaderboard</h2>
+        <ol id="leaderboard-list"></ol>
+    </section>
+
+    <div id="highscore-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="highscore-title">
+        <div class="modal-content">
+            <h2 id="highscore-title">New High Score</h2>
+            <p>Enter your initials (3 characters)</p>
+            <form id="highscore-form">
+                <input id="initials-input" type="text" inputmode="text" maxlength="3" minlength="3" autocomplete="off" required>
+                <button id="save-score-btn" type="submit">Save Score</button>
+            </form>
+        </div>
     </div>
 
     <button id="mute-btn">&#128266; Sound On</button>

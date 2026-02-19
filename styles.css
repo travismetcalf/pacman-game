@@ -19,7 +19,8 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
+    padding: 20px 12px;
 }
 
 h1 {
@@ -72,6 +73,104 @@ h1 {
 
 canvas {
     display: block;
+}
+
+.leaderboard {
+    width: min(420px, 95vw);
+    margin-top: 12px;
+    padding: 10px 12px 12px;
+    border: 2px solid #2a2a2a;
+    border-radius: 4px;
+    background: #0a0a0a;
+}
+
+.leaderboard h2 {
+    font-size: 11px;
+    color: #ffcc00;
+    margin-bottom: 8px;
+}
+
+#leaderboard-list {
+    list-style-position: inside;
+    font-size: 10px;
+    line-height: 1.6;
+    color: #ddd;
+    min-height: 96px;
+}
+
+#leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+#level-value {
+    color: #66d9ff;
+    font-size: 14px;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    width: min(480px, 92vw);
+    border: 2px solid #444;
+    background: #111;
+    padding: 16px;
+    text-align: center;
+}
+
+.modal-content h2 {
+    color: #ffcc00;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.modal-content p {
+    font-size: 9px;
+    color: #c7c7c7;
+    margin-bottom: 10px;
+}
+
+#highscore-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+#initials-input {
+    width: 80px;
+    text-align: center;
+    text-transform: uppercase;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px;
+    padding: 8px 6px;
+    border: 1px solid #555;
+    background: #000;
+    color: #fff;
+}
+
+#save-score-btn {
+    padding: 8px 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #222;
+    color: #eee;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    cursor: pointer;
 }
 
 /* --- Mute button --- */

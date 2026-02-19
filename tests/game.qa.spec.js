@@ -7,6 +7,8 @@ test.describe('Pac-Man QA smoke tests', () => {
     await expect(page.getByRole('heading', { name: 'PAC-MAN' })).toBeVisible();
     await expect(page.locator('#score-value')).toHaveText('0');
     await expect(page.locator('#lives-value')).toContainText('❤');
+    await expect(page.locator('#level-value')).toHaveText('1/4');
+    await expect(page.getByRole('heading', { name: 'Leaderboard' })).toBeVisible();
 
     const canvas = page.locator('#game-canvas');
     await expect(canvas).toBeVisible();
@@ -36,5 +38,43 @@ test.describe('Pac-Man QA smoke tests', () => {
 
     await page.keyboard.press('m');
     await expect(muteButton).toContainText('Sound On');
+  });
+
+  test('advances through added levels', async ({ page }) => {
+    await page.goto('/');
+
+    await page.evaluate(() => window.__PACMAN_DEBUG__.start());
+    await expect(page.locator('#level-value')).toHaveText('1/4');
+
+    await page.evaluate(() => window.__PACMAN_DEBUG__.advanceLevel());
+    await expect(page.locator('#level-value')).toHaveText('2/4');
+
+    await page.evaluate(() => window.__PACMAN_DEBUG__.advanceLevel());
+    await expect(page.locator('#level-value')).toHaveText('3/4');
+
+    await page.evaluate(() => window.__PACMAN_DEBUG__.advanceLevel());
+    await expect(page.locator('#level-value')).toHaveText('4/4');
+  });
+
+  test('prompts for initials and saves top-10 high scores', async ({ page }) => {
+    await page.goto('/');
+
+    await page.evaluate(() => {
+      const scores = [900, 800, 700, 600, 500, 400, 300, 200, 100];
+      window.__PACMAN_DEBUG__.setLeaderboard(
+        scores.map((score, i) => ({ initials: `A${i}A`.slice(0, 3), score }))
+      );
+      window.__PACMAN_DEBUG__.setScore(950);
+      window.__PACMAN_DEBUG__.forceGameOver();
+    });
+
+    await expect(page.locator('#highscore-modal')).toBeVisible();
+    await page.locator('#initials-input').fill('abc');
+    await page.locator('#save-score-btn').click();
+
+    await expect(page.locator('#highscore-modal')).toBeHidden();
+    await expect(page.locator('#leaderboard-list li').first()).toContainText('ABC');
+    await expect(page.locator('#leaderboard-list li').first()).toContainText('950');
+    await expect(page.locator('#leaderboard-list li')).toHaveCount(10);
   });
 });

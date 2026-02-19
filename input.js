@@ -31,6 +31,9 @@ class InputManager {
     }
 
     _onKeyDown(e) {
+        const targetTag = e.target && e.target.tagName;
+        const isTypingTarget = targetTag === 'INPUT' || targetTag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+
         // Map to a direction if applicable
         const dir = KEY_MAP[e.key];
         if (dir) {
@@ -39,7 +42,7 @@ class InputManager {
         }
 
         // Fire the "any key" callback regardless of which key
-        if (this.onAnyKey) {
+        if (this.onAnyKey && !isTypingTarget) {
             this.onAnyKey(e.key);
         }
     }
